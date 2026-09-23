@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { lockSeat, getLockOwner, releaseSeatLock } from "../lockService";
+import { checkRateLimit } from "../rateLimiter";
 
 export const reservationRouter = Router();
 
@@ -9,6 +10,7 @@ export const reservationRouter = Router();
  * 200 -> bloqueo exitoso (10s para confirmar pago vía Slow-Path)
  * 409 -> asiento ya bloqueado por otro usuario
  * 400 -> falta userId
+ * 429 -> demasiadas peticiones del mismo usuario
  */
 reservationRouter.post("/reservas/:seatId", async (req: Request, res: Response) => {
   const { seatId } = req.params;
@@ -19,6 +21,11 @@ reservationRouter.post("/reservas/:seatId", async (req: Request, res: Response) 
   }
 
   try {
+    const allowed = await checkRateLimit(userId);
+    if (!allowed) {
+      return res.status(429).json({ error: "Demasiadas peticiones, intenta de nuevo en un momento" });
+    }
+
     const result = await lockSeat(seatId, userId);
 
     if (result.success) {
@@ -60,7 +67,6 @@ reservationRouter.get("/reservas/:seatId/estado", async (req: Request, res: Resp
  * DELETE /reservas/:seatId
  * body: { userId: string }
  * Libera el bloqueo, pero SOLO si el userId coincide con el dueño actual
- * (evita que un tercero libere el asiento de otro usuario).
  * 200 -> liberado
  * 403 -> el userId no es el dueño del bloqueo
  * 404 -> no había bloqueo activo
