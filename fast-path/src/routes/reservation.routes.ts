@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { lockSeat, getLockOwner } from "../lockService";
+import { lockSeat, getLockOwner, releaseSeatLock } from "../lockService";
 
 export const reservationRouter = Router();
 
@@ -50,6 +50,47 @@ reservationRouter.get("/reservas/:seatId/estado", async (req: Request, res: Resp
   try {
     const owner = await getLockOwner(seatId);
     return res.status(200).json({ seatId, bloqueadoPor: owner || null });
+  } catch (err) {
+    console.error("[reservas] error:", err);
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+/**
+ * DELETE /reservas/:seatId
+ * body: { userId: string }
+ * Libera el bloqueo, pero SOLO si el userId coincide con el dueño actual
+ * (evita que un tercero libere el asiento de otro usuario).
+ * 200 -> liberado
+ * 403 -> el userId no es el dueño del bloqueo
+ * 404 -> no había bloqueo activo
+ */
+reservationRouter.delete("/reservas/:seatId", async (req: Request, res: Response) => {
+  const { seatId } = req.params;
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: "userId es requerido" });
+  }
+
+  try {
+    const owner = await getLockOwner(seatId);
+
+    if (!owner) {
+      return res.status(404).json({ status: "no_existe", seatId, message: "No hay bloqueo activo" });
+    }
+
+    const released = await releaseSeatLock(seatId, userId);
+
+    if (released) {
+      return res.status(200).json({ status: "liberado", seatId, userId });
+    }
+
+    return res.status(403).json({
+      status: "prohibido",
+      seatId,
+      message: "El userId no coincide con el dueño del bloqueo"
+    });
   } catch (err) {
     console.error("[reservas] error:", err);
     return res.status(500).json({ error: "Error interno del servidor" });
