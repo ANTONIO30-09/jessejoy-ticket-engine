@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { lockSeat, getLockOwner, releaseSeatLock } from "../lockService";
 import { checkRateLimit } from "../rateLimiter";
+import { isValidSeatId, isValidUserId } from "../validation";
 
 export const reservationRouter = Router();
 
@@ -9,15 +10,19 @@ export const reservationRouter = Router();
  * body: { userId: string }
  * 200 -> bloqueo exitoso (10s para confirmar pago vía Slow-Path)
  * 409 -> asiento ya bloqueado por otro usuario
- * 400 -> falta userId
+ * 400 -> falta userId o formato inválido
  * 429 -> demasiadas peticiones del mismo usuario
  */
 reservationRouter.post("/reservas/:seatId", async (req: Request, res: Response) => {
   const { seatId } = req.params;
   const { userId } = req.body;
 
-  if (!userId) {
-    return res.status(400).json({ error: "userId es requerido" });
+  if (!isValidSeatId(seatId)) {
+    return res.status(400).json({ error: "seatId inválido (solo letras, números y guiones, máx 20 caracteres)" });
+  }
+
+  if (!isValidUserId(userId)) {
+    return res.status(400).json({ error: "userId inválido o faltante (solo letras, números, - y _, máx 50 caracteres)" });
   }
 
   try {
@@ -54,6 +59,11 @@ reservationRouter.post("/reservas/:seatId", async (req: Request, res: Response) 
  */
 reservationRouter.get("/reservas/:seatId/estado", async (req: Request, res: Response) => {
   const { seatId } = req.params;
+
+  if (!isValidSeatId(seatId)) {
+    return res.status(400).json({ error: "seatId inválido" });
+  }
+
   try {
     const owner = await getLockOwner(seatId);
     return res.status(200).json({ seatId, bloqueadoPor: owner || null });
@@ -70,13 +80,18 @@ reservationRouter.get("/reservas/:seatId/estado", async (req: Request, res: Resp
  * 200 -> liberado
  * 403 -> el userId no es el dueño del bloqueo
  * 404 -> no había bloqueo activo
+ * 400 -> formato inválido
  */
 reservationRouter.delete("/reservas/:seatId", async (req: Request, res: Response) => {
   const { seatId } = req.params;
   const { userId } = req.body;
 
-  if (!userId) {
-    return res.status(400).json({ error: "userId es requerido" });
+  if (!isValidSeatId(seatId)) {
+    return res.status(400).json({ error: "seatId inválido" });
+  }
+
+  if (!isValidUserId(userId)) {
+    return res.status(400).json({ error: "userId inválido o faltante" });
   }
 
   try {
