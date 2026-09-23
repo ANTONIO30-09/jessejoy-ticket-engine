@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { reservationRouter } from "./routes/reservation.routes";
 import { requireRedis } from "./redisHealthMiddleware";
 import { logger } from "./logger";
@@ -6,6 +7,7 @@ import { logger } from "./logger";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cors());
 app.use(express.json());
 app.use("/reservas", requireRedis);
 app.use("/", reservationRouter);

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JesseJoy Ticket Engine</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>JesseJoy <span>Ticket Engine</span></h1>
+    <p class="subtitle">Selecciona un asiento para reservarlo</p>
+  </header>
+
+  <main>
+    <section class="user-panel">
+      <label for="userId">Tu usuario</label>
+      <input type="text" id="userId" placeholder="ej: anton" value="anton">
+    </section>
+
+    <section class="seat-grid" id="seatGrid"></section>
+
+    <section class="log-panel">
+      <h2>Actividad</h2>
+      <ul id="logList"></ul>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

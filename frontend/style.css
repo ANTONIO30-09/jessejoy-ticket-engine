@@ -1,0 +1,138 @@
+:root {
+  --bordo: #6C0E2B;
+  --cream: #F5DABF;
+  --black: #111111;
+  --white: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--cream);
+  color: var(--black);
+}
+
+header {
+  background: var(--bordo);
+  color: var(--white);
+  padding: 24px 32px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 0.5px;
+}
+
+header h1 span {
+  font-weight: 300;
+  opacity: 0.85;
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  opacity: 0.85;
+  font-size: 14px;
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+}
+
+.user-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  background: var(--white);
+  padding: 14px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.user-panel label {
+  font-weight: 600;
+  color: var(--bordo);
+}
+
+.user-panel input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.seat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.seat {
+  aspect-ratio: 1;
+  border: 2px solid var(--black);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.2s ease;
+}
+
+.seat:hover {
+  transform: scale(1.05);
+}
+
+.seat.bloqueado {
+  background: var(--bordo);
+  color: var(--white);
+  border-color: var(--bordo);
+  cursor: not-allowed;
+}
+
+.seat.mio {
+  background: var(--black);
+  color: var(--cream);
+  border-color: var(--black);
+}
+
+.log-panel {
+  background: var(--white);
+  border-radius: 8px;
+  padding: 16px 20px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.log-panel h2 {
+  margin-top: 0;
+  color: var(--bordo);
+  font-size: 16px;
+}
+
+#logList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+#logList li {
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+}
+
+#logList li.ok { color: var(--black); }
+#logList li.error { color: var(--bordo); font-weight: 600; }
