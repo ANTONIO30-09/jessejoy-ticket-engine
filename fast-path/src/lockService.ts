@@ -1,4 +1,5 @@
 import { redis } from "./redisClient";
+import { logger } from "./logger";
 
 const LOCK_TTL_MS = Number(process.env.LOCK_TTL_MS || 10000);
 const RESERVATION_STREAM = process.env.RESERVATION_STREAM || "reservations:pending";
@@ -22,7 +23,6 @@ export async function lockSeat(seatId: string, userId: string): Promise<LockResu
   const result = await redis.set(key, userId, "PX", LOCK_TTL_MS, "NX");
 
   if (result === "OK") {
-    // Publicamos el evento para que el Slow-Path (Natalia) lo procese
     await redis.xadd(
       RESERVATION_STREAM,
       "*",
@@ -33,11 +33,11 @@ export async function lockSeat(seatId: string, userId: string): Promise<LockResu
       "timestamp", String(Date.now())
     );
 
-    console.log(`[lock] asiento ${seatId} bloqueado por ${userId} (TTL ${LOCK_TTL_MS}ms)`);
+    logger.info("lockService", "asiento bloqueado", { seatId, userId, ttlMs: LOCK_TTL_MS });
     return { success: true, seatId, userId, ttlMs: LOCK_TTL_MS };
   }
 
-  console.log(`[lock] asiento ${seatId} ya bloqueado, rechazo a ${userId}`);
+  logger.warn("lockService", "asiento ya bloqueado, rechazo", { seatId, userId });
   return { success: false, seatId, userId, ttlMs: LOCK_TTL_MS };
 }
 
@@ -55,7 +55,15 @@ export async function releaseSeatLock(seatId: string, userId: string): Promise<b
     end
   `;
   const result = await redis.eval(script, 1, key, userId);
-  return result === 1;
+  const released = result === 1;
+
+  if (released) {
+    logger.info("lockService", "asiento liberado", { seatId, userId });
+  } else {
+    logger.warn("lockService", "intento de liberacion rechazado", { seatId, userId });
+  }
+
+  return released;
 }
 
 export async function getLockOwner(seatId: string): Promise<string | null> {
