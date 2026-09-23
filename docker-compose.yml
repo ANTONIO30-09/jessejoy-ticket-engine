@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: jessejoy-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: jessejoy-postgres
+    environment:
+      POSTGRES_USER: jessejoy
+      POSTGRES_PASSWORD: jessejoy_pass
+      POSTGRES_DB: jessejoy_tickets
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./slow-path/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jessejoy"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  fast-path:
+    build: ./fast-path
+    container_name: jessejoy-fast-path
+    environment:
+      REDIS_URL: redis://redis:6379
+      PORT: 3000
+      LOCK_TTL_MS: 10000
+      RESERVATION_STREAM: reservations:pending
+    ports:
+      - "3000:3000"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  slow-path:
+    build: ./slow-path
+    container_name: jessejoy-slow-path
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://jessejoy:jessejoy_pass@postgres:5432/jessejoy_tickets
+      RESERVATION_STREAM: reservations:pending
+      CONSUMER_GROUP: slow-path-workers
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
